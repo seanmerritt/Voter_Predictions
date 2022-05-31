@@ -1,0 +1,19 @@
+\begin{longtable}[]{@{}rrr@{}}
+\caption{\label{tab:unnamed-chunk-9}Yearly Accuracy}\tabularnewline
+\toprule
+Year & Accuracy & AUC \\
+\midrule
+\endfirsthead
+\toprule
+Year & Accuracy & AUC \\
+\midrule
+\endhead
+2006 & 0.5663643 & 0.5788361 \\
+2008 & 0.7031381 & 0.6345702 \\
+2010 & 0.7096642 & 0.7178568 \\
+2012 & 0.7100576 & 0.6836987 \\
+2014 & 0.6752250 & 0.7374063 \\
+2016 & 0.6535725 & 0.6890358 \\
+2018 & 0.6848255 & 0.7273221 \\
+\bottomrule
+\end{longtable}

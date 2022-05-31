@@ -1,0 +1,226 @@
+---
+title             : "ML and Voter Turnout"
+shorttitle        : "Predicting Voter Turnout with Machine Learning"
+
+author: 
+  - name          : "Sean H. Merritt"
+    affiliation   : "1"
+    corresponding : yes    # Define only one corresponding author
+    email         : "sean.merritt@cgu.edu"
+    role:         # Contributorship roles (e.g., CRediT, https://casrai.org/credit/)
+      - Conceptualization
+      - Writing - Original Draft Preparation
+      - Writing - Review & Editing
+  - name          : "Carlos Algara"
+    affiliation   : "1,2"
+    role:
+      - Writing - Review & Editing
+
+affiliation:
+  - id            : "1"
+    institution   : "Claremont Graduate University"
+
+authornote: |
+  Add complete departmental affiliations for each author here. Each new line herein must be indented, like this line.
+
+  Enter author note here.
+
+abstract: |
+ 
+  
+keywords          : "keywords"
+wordcount         : "X"
+
+bibliography      : ["r-references.bib"]
+
+floatsintext      : no
+figurelist        : no
+tablelist         : no
+footnotelist      : no
+linenumbers       : yes
+mask              : no
+draft             : no
+
+documentclass     : "apa6"
+classoption       : "man"
+output            : papaja::apa6_pdf
+---
+
+```{r setup, include = FALSE}
+library("papaja")
+r_refs("r-references.bib")
+```
+
+```{r analysis-preferences}
+# Seed for random number generation
+set.seed(42)
+knitr::opts_chunk$set(cache.extra = knitr::rand_seed)
+```
+
+```{r, include = FALSE}
+pacman::p_load(tidyverse, reticulate, knitr, broom,haven,sjlabelled)
+dat <- read_dta("Data and Preperation/CCES data/cumulative_2006-2020.dta")
+
+new_dat <- dat %>% 
+  filter(year %in% c(2006, 2008, 2010, 2012, 2014, 2016, 2018)) %>%
+  mutate(pres_party = case_when(year %in% c(2010,2012,2014)~ 1,
+                                TRUE ~ 2)) %>%
+  mutate(voted = ifelse(vv_turnout_gvm == 1, 1, 0),
+         InParty = ifelse(pid3 == pres_party,1,0),
+         NonParty = ifelse(pid3 %in% c(3,4,5),1,0),
+         presidential_approval = ifelse(approval_pres >= 3, 0,1),
+         income = ifelse(faminc > 12, NA, faminc),
+         White = ifelse(race > 1, 0,1),
+         ideology = ifelse(ideo5 == 6, NA, ideo5),
+         Gender = ifelse(gender == 2, 1,0),
+         PartTime = ifelse(employ == 2,1,0),
+         Unemployed = ifelse(employ %in% c(3,4), 1, 0),
+         Retired = ifelse(employ == 5, 1,0),
+         Disabled = ifelse(employ == 6, 1,0),
+         Homemaker = ifelse(employ == 7, 1,0),
+         Student = ifelse(employ == 8, 1, 0),
+         OtherEmployment = ifelse(employ == 9, 1,0),
+         Married = ifelse(marstat == 1, 1, 0),
+         Seperated = ifelse(marstat ==2, 1,0),
+         Divorced = ifelse(marstat == 3,1,0),
+         Widowed = ifelse(marstat == 4,1,0),
+         Partnership = ifelse(marstat == 6, 1, 0),
+         state = as.factor(state)) %>% 
+  select(voted,Gender,White, race, InParty, NonParty, presidential_approval, PartTime, Unemployed, Retired, Disabled, Homemaker, Student, OtherEmployment, Married, Seperated, Divorced, Widowed, Partnership, age, income, ideology, year, state) %>% 
+  unlabel()
+
+new_dat <- new_dat %>% 
+  mutate(approval_in = InParty*presidential_approval,
+        approval_non = NonParty*presidential_approval) 
+
+use_condaenv(' C:\\Users\\seanm\\Anaconda3\\python.exe')
+
+pv <- function(val) {
+  if(val<0.001){
+    pval <- "< .001"
+  } else {
+    pval <- paste( "=", sub("^(-?)0.", "\\1.", sprintf("%.3f", val)))
+  }
+  return(pval)
+}
+```
+
+
+# Methods
+We report how we determined our sample size, all data exclusions (if any), all manipulations, and all measures in the study. <!-- 21-word solution (Simmons, Nelson & Simonsohn, 2012; retrieved from http://ssrn.com/abstract=2160588) -->
+
+
+## Participants
+
+## Material
+
+## Procedure+
+
+## Data analysis
+We used `r cite_r("r-references.bib")` for all our analyses.
+
+
+# Results
+
+
+
+
+```{r}
+new_dat %>% 
+  mutate(approval_in = InParty*presidential_approval,
+        approval_non = NonParty*presidential_approval) %>% 
+ jmv::logRegBin(dep = voted,
+                 covs = vars(age, year, Gender,  race,  income, Married, ideology,InParty, NonParty, presidential_approval, approval_non, approval_in),
+                 blocks = list(list('age', 'year', 'Gender',  'race'),
+                               list( 'income', 'Married', 'ideology'),
+                               list( 'InParty', 'NonParty', 'presidential_approval'), 
+                               list('approval_non', 'approval_in')),
+                 refLevels = list(list(var = "voted", ref = "0" )), 
+                 acc = T,
+                 class = T,
+                 modelTest = T, 
+                 OR =T, 
+                 collin = T)
+```
+```{r}
+new_new_dat <- new_dat %>% 
+  mutate(approval_in = InParty*presidential_approval,
+        approval_non = NonParty*presidential_approval,
+        PARTY = case_when(InParty == 1 ~ "In-Party",
+                          NonParty == 1 ~ "Non-Party",
+                          TRUE ~ "Out-Party"),
+        approval = ifelse(presidential_approval == 1, "Approve", "Dissaprove"),
+        year = factor(year))
+
+model_1<-glm(voted~age+year+Gender+race+income+Married+ideology+  PARTY*approval,data=new_new_dat, family = binomial(link = "logit"))
+
+library(effects)
+predict <- data.frame(effect("PARTY*approval", se=TRUE, mod = model, confidence.level = 0.95))
+
+predict %>% 
+  ggplot(aes(x = PARTY, y = fit, color = approval, group = approval))+
+  geom_line()+
+  geom_errorbar(aes(ymin = lower, ymax = upper, width = .2))+
+  theme_classic()+
+  labs(y = 'Voting Probability', color = 'Approval', x = "Party")+
+  theme(legend.position = "bottom")
+
+ggsave('cross-sectional interaction.jpeg')
+
+yearly_plot <- function(Year, data){
+  X <-  new_dat %>%
+  filter(year == Year) %>% 
+  mutate(approval_in = InParty*presidential_approval,
+        approval_non = NonParty*presidential_approval,
+        PARTY = case_when(InParty == 1 ~ "In-Party",
+                          NonParty == 1 ~ "Non-Party",
+                          TRUE ~ "Out-Party"),
+        approval = ifelse(presidential_approval == 1, "Approve", "Dissaprove"),
+        year = factor(year)) 
+  
+  model<-glm(voted~age+Gender+race+income+Married+ideology+ PARTY*approval,data=X, family = binomial(link = "logit"))
+  predict <- data.frame(effect("PARTY*approval", se=TRUE, mod = model, confidence.level = 0.95))
+
+plot <- predict %>% 
+  ggplot(aes(x = PARTY, y = fit, color = approval, group = approval))+
+  geom_line()+
+  geom_errorbar(aes(ymin = lower, ymax = upper, width = .2))+
+  theme_classic()+
+  labs(y = 'Voting Probability', color = 'Approval', x = "Party", title = Year)+
+  theme(legend.position = "bottom")
+
+name = paste(Year, "Probability Plot.jpeg", sep = " ")
+plot
+ggsave(name)
+
+return(plot)
+}
+
+years <- c(2006,2008,2010,2012,2014,2016,2018)
+
+myplots <- lapply(years, yearly_plot, new_dat)
+
+
+msummary(model)
+plot(effect("approval", se=TRUE, mod = model, confidence.level = 0.95))
+```
+
+```{python}
+import os
+#os.chdir()
+report_df.to_csv('Accuracy_report.csv')
+```
+
+# Discussion
+
+
+\newpage
+
+# References
+
+\begingroup
+\setlength{\parindent}{-0.5in}
+\setlength{\leftskip}{0.5in}
+
+<div id="refs" custom-style="Bibliography"></div>
+\endgroup
