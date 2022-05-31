@@ -14,4 +14,4 @@ I was able to predict voters with 97%-99% accuracy (AUC) in the ERS data. Howeve
 ## Implications
 Most of the top predictors of voter status are not influentiable. However, one key variable (belief the system is rigged) can be. Therefore, we reccomend that more needs to be done to increase voters trust in the system. 
 
-**Not Peer-reviewed research**
+
