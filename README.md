@@ -1,4 +1,4 @@
-# Voter_Predictions
+# Predicting Voters VS Non-voters
 ## Motivation
 While voting is a big part of a democratic society, a lot of adults don't vote. To better understand this, I examined voting data to find the best predictors of voting status. 
 
